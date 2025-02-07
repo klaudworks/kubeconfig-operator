@@ -16,7 +16,9 @@ metadata:
   name: restricted-access
 spec:
   clusterName: local-kind-cluster
-  server: https://127.0.0.1:52856 # specify external endpoint to your kubernetes API.
+  # specify external endpoint to your kubernetes API.
+  # You can copy this from your other kubeconfig.
+  server: https://127.0.0.1:52856   
   clusterPermissions:
     rules:
     - apiGroups:
