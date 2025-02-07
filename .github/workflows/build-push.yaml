@@ -46,7 +46,7 @@ jobs:
 
       - name: Bump version and push tag
         id: semver
-        uses: anothrNick/github-tag-action@v1.71.0
+        uses: anothrNick/github-tag-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WITH_V: true
