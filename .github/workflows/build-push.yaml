@@ -15,6 +15,7 @@ on:
       - .github/**
       - .gitignore
       - .pre-commit-config.yaml
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
