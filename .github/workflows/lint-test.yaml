@@ -3,8 +3,18 @@ name: Lint and Test
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - "cmd/**"
+      - "internal/**"
+      - "api/**"
+      - "main.go"
   pull_request:
     branches: [ "main" ]
+    paths:
+      - "cmd/**"
+      - "internal/**"
+      - "api/**"
+      - "main.go"
 
 jobs:
   lint-and-test:
