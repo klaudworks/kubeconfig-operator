@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Go CLI Tool",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/main.go",
+            "args": [
+                "--kubeconfig", "${env:HOME}/.kube/kind.yaml",
+                "--kubecontext", "kind-kind",
+            ],
+            "env": {},
+            "showLog": false
+        }
+    ]
+}

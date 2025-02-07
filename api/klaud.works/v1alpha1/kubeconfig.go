@@ -1,0 +1,106 @@
+package v1alpha1
+
+import (
+	"github.com/reddit/achilles-sdk-api/api"
+	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+func init() {
+	SchemeBuilder.Register(&Kubeconfig{}, &KubeconfigList{})
+}
+
+const (
+	TypeKubeconfigProvisioned     api.ConditionType = "KubeconfigProvisioned"
+	TypeServiceAccountProvisioned api.ConditionType = "ServiceAccountProvisioned"
+	TypeStalePermissionsRemoved   api.ConditionType = "StalePermissionsRemoved"
+)
+
+// Kubeconfig is the Schema for the Kubeconfig API
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:scope=Namespaced
+// +kubebuilder:subresource:status
+type Kubeconfig struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   KubeconfigSpec   `json:"spec,omitempty"`
+	Status KubeconfigStatus `json:"status,omitempty"`
+}
+
+// KubeconfigList contains a list of Kubeconfig
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:scope=Namespaced
+type KubeconfigList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Kubeconfig `json:"items"`
+}
+
+// KubeconfigSpec defines the desired state of Kubeconfig
+type KubeconfigSpec struct {
+	// Server is the Kubernetes API server URL.
+	// Set this to the external URL of the cluster.
+	// You can copy this from your admin kubeconfig.
+	// Required
+	Server string `json:"server"`
+
+	// ClusterName is the name of the cluster in the created kubeconfig.
+	// This is also used as the context name. You can change this to anything you want.
+	// Optional
+	// +kubebuilder:default=kubernetes
+	ClusterName string `json:"clusterName,omitempty"`
+
+	// NamespacedPermissions defines a list of namespaced scoped permissions. Optional
+	NamespacedPermissions []NamespacedPermissions `json:"namespacedPermissions,omitempty"`
+
+	// ClusterPermissions defines cluster scoped permissions. Optional
+	ClusterPermissions *ClusterPermissions `json:"clusterPermissions,omitempty"`
+}
+
+type NamespacedPermissions struct {
+	// Namespace the role applies to. Required
+	Namespace string `json:"namespace"`
+
+	// Rules for the role. Required
+	Rules []rbacv1.PolicyRule `json:"rules"`
+}
+
+type ClusterPermissions struct {
+	// Rules for the role. Required
+	Rules []rbacv1.PolicyRule `json:"rules"`
+}
+
+// KubeconfigStatus defines the observed state of Kubeconfig
+type KubeconfigStatus struct {
+	api.ConditionedStatus `json:",inline"`
+
+	// ResourceRefs is a list of all resources managed by this object.
+	ResourceRefs []api.TypedObjectRef `json:"resourceRefs,omitempty"`
+
+	// KubeconfigSecretRef is a reference to the Secret containing the kubeconfig.
+	KubeconfigSecretRef *string `json:"kubeconfigSecretRef,omitempty"`
+
+	// ServiceAccountSecretRef is a reference to the Secret containing the service account token.
+	ServiceAccountSecretRef *string `json:"serviceAccountSecretRef,omitempty"`
+}
+
+func (c *Kubeconfig) GetConditions() []api.Condition {
+	return c.Status.Conditions
+}
+
+func (c *Kubeconfig) SetConditions(cond ...api.Condition) {
+	c.Status.SetConditions(cond...)
+}
+
+func (c *Kubeconfig) GetCondition(t api.ConditionType) api.Condition {
+	return c.Status.GetCondition(t)
+}
+
+func (c *Kubeconfig) SetManagedResources(refs []api.TypedObjectRef) {
+	c.Status.ResourceRefs = refs
+}
+
+func (c *Kubeconfig) GetManagedResources() []api.TypedObjectRef {
+	return c.Status.ResourceRefs
+}

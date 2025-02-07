@@ -1,0 +1,35 @@
+name: Lint and Test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    container:
+      image: golang:1.23.6
+
+    steps:
+      - uses: actions/checkout@v3
+
+      # o.w. git commands fail
+      - name: Configure Git Safe Directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Generate
+        run: |
+          echo "Generating manifests..."
+          make generate
+          echo "Linting..."
+          make lint
+          echo "Checking for changes..."
+          git status
+          git diff
+          test -z "$(git status --porcelain)"
+
+      - name: Test
+        run: make test
