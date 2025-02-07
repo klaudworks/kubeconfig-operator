@@ -85,7 +85,8 @@ func (r *reconciler) provisionServiceAccount() *state {
 				out.Apply(o, applyOpts...)
 			}
 
-			kubeconfig.Status.ServiceAccountSecretRef = ptr.To(builder.ServiceAccount().Name)
+			kubeconfig.Status.ServiceAccountRef = ptr.To(builder.ServiceAccount().Name)
+			kubeconfig.Status.ServiceAccountTokenSecretRef = ptr.To(builder.Secret().Name)
 
 			return r.deleteStalePermissions(outputs), types.DoneResult()
 		},
@@ -155,11 +156,17 @@ func (r *reconciler) provisionKubeconfig() *state {
 			out *types.OutputSet,
 		) (*state, types.Result) {
 
-			if kubeconfig.Status.ServiceAccountSecretRef == nil {
-				return nil, types.ErrorResultf("ServiceAccountSecretRef is nil; cannot proceed with provisioning kubeconfig")
-			}
-			saName := *kubeconfig.Status.ServiceAccountSecretRef
 			namespace := kubeconfig.GetNamespace()
+
+			if kubeconfig.Status.ServiceAccountRef == nil {
+				return nil, types.ErrorResultf("missing service account reference in status")
+			}
+			saName := *kubeconfig.Status.ServiceAccountRef
+
+			if kubeconfig.Status.ServiceAccountTokenSecretRef == nil {
+				return nil, types.ErrorResultf("missing service account token secret reference in status")
+			}
+			tokenSecretName := *kubeconfig.Status.ServiceAccountTokenSecretRef
 
 			sa := &corev1.ServiceAccount{}
 			if err := r.c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: saName}, sa); err != nil {
@@ -167,12 +174,12 @@ func (r *reconciler) provisionKubeconfig() *state {
 			}
 
 			tokenSecret := &corev1.Secret{}
-			if err := r.c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: *kubeconfig.Status.ServiceAccountSecretRef}, tokenSecret); err != nil {
-				return nil, types.ErrorResultf("failed to get service account token secret %s: %v", *kubeconfig.Status.ServiceAccountSecretRef, err)
+			if err := r.c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: tokenSecretName}, tokenSecret); err != nil {
+				return nil, types.ErrorResultf("failed to get service account token secret %s: %v", *kubeconfig.Status.ServiceAccountRef, err)
 			}
 
 			if tokenSecret.Type != corev1.SecretTypeServiceAccountToken {
-				return nil, types.ErrorResultf("service account token secret %s is not of type ServiceAccountToken", *kubeconfig.Status.ServiceAccountSecretRef)
+				return nil, types.ErrorResultf("service account token secret %s is not of type ServiceAccountToken", *kubeconfig.Status.ServiceAccountRef)
 			}
 
 			tokenData, ok := tokenSecret.Data["token"]

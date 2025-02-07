@@ -81,8 +81,11 @@ type KubeconfigStatus struct {
 	// KubeconfigSecretRef is a reference to the Secret containing the kubeconfig.
 	KubeconfigSecretRef *string `json:"kubeconfigSecretRef,omitempty"`
 
-	// ServiceAccountSecretRef is a reference to the Secret containing the service account token.
-	ServiceAccountSecretRef *string `json:"serviceAccountSecretRef,omitempty"`
+	// ServiceAccountRef is a reference to the ServiceAccount that will be used to provision the kubeconfig.
+	ServiceAccountRef *string `json:"serviceAccountSecretRef,omitempty"`
+
+	// ServiceAccountTokenSecretRef is a reference to the Secret containing the service account token.
+	ServiceAccountTokenSecretRef *string `json:"serviceAccountTokenSecretRef,omitempty"`
 }
 
 func (c *Kubeconfig) GetConditions() []api.Condition {

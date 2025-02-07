@@ -27,7 +27,7 @@ func NewBuilder(
 func (b *builder) Build() []client.Object {
 	resources := []client.Object{
 		b.ServiceAccount(),
-		b.secret(),
+		b.Secret(),
 	}
 
 	resources = append(resources, b.roleAndBindings()...)
@@ -43,18 +43,18 @@ func (b *builder) Build() []client.Object {
 func (b *builder) ServiceAccount() *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      b.kubeconfig.GetName() + "-token",
+			Name:      b.kubeconfig.GetName(),
 			Namespace: b.kubeconfig.GetNamespace(),
 		},
 	}
 }
 
-func (b *builder) secret() *corev1.Secret {
+func (b *builder) Secret() *corev1.Secret {
 	sa := b.ServiceAccount()
 
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      b.kubeconfig.Name,
+			Name:      b.kubeconfig.Name + "-token",
 			Namespace: b.kubeconfig.Namespace,
 			Annotations: map[string]string{
 				"kubernetes.io/service-account.name": sa.GetName(),

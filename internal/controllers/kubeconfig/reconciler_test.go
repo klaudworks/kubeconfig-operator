@@ -72,13 +72,17 @@ var _ = Describe("KubeconfigReconciler", Ordered, func() {
 	})
 
 	It("should reconcile Kubeconfig objects", func() {
+		// Factor out the token secret name.
+		tokenSecretName := kubeconfig.Name + "-token"
+		kubeconfigSecretName := kubeconfig.Name + "-kubeconfig"
+
 		By("provisioning resources required for the kubeconfig")
 
 		// 1. ServiceAccount Token Secret (created by the builder)
 		Eventually(func(g Gomega) {
 			expectedSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeconfig.Name, // same as the created ServiceAccount name
+					Name:      tokenSecretName,
 					Namespace: kubeconfig.Namespace,
 				},
 			}
@@ -106,7 +110,7 @@ var _ = Describe("KubeconfigReconciler", Ordered, func() {
 		By("simulating token injection on the service account token secret")
 		Eventually(func(g Gomega) {
 			saSecret := &corev1.Secret{}
-			g.Expect(c.Get(ctx, client.ObjectKey{Namespace: kubeconfig.Namespace, Name: kubeconfig.Name}, saSecret)).To(Succeed())
+			g.Expect(c.Get(ctx, client.ObjectKey{Namespace: kubeconfig.Namespace, Name: tokenSecretName}, saSecret)).To(Succeed())
 			if saSecret.Data == nil {
 				saSecret.Data = map[string][]byte{}
 			}
@@ -246,8 +250,7 @@ var _ = Describe("KubeconfigReconciler", Ordered, func() {
 			g.Expect(actualClusterRoleBinding.Subjects).To(Equal(expectedClusterRoleBinding.Subjects))
 		}).Should(Succeed())
 
-		By("updating status with references to secrets")
-		// The service account secret ref should be set (to the same name as the Kubeconfig/ServiceAccount)
+		By("updating status with references to service account")
 		Eventually(func(g Gomega) {
 			actual := &v1alpha1.Kubeconfig{
 				ObjectMeta: metav1.ObjectMeta{
@@ -256,13 +259,12 @@ var _ = Describe("KubeconfigReconciler", Ordered, func() {
 				},
 			}
 			g.Expect(c.Get(ctx, client.ObjectKeyFromObject(actual), actual)).To(Succeed())
-			g.Expect(actual.Status.ServiceAccountSecretRef).To(Equal(ptr.To(kubeconfig.Name)))
+			g.Expect(actual.Status.ServiceAccountRef).To(Equal(ptr.To(kubeconfig.Name)))
 		}).Should(Succeed())
 
 		By("provisioning a kubeconfig secret for client usage")
 		// Expect the reconciler to create a separate secret containing the actual kubeconfig data.
 		Eventually(func(g Gomega) {
-			kubeconfigSecretName := kubeconfig.Name + "-kubeconfig"
 			expectedSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      kubeconfigSecretName,
