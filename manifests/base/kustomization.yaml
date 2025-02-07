@@ -1,9 +1,0 @@
-# handwritten
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-resources:
-  - ../crd/bases/
-  - deployment/namespace.yaml
-  - rbac/
-  - deployment/kubeconfig-operator.yaml
