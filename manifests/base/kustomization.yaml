@@ -7,8 +7,3 @@ resources:
   - deployment/namespace.yaml
   - rbac/
   - deployment/kubeconfig-operator.yaml
-
-images:
-  - name: ghcr.io/klaudworks/kubeconfig-operator
-    newName: ghcr.io/klaudworks/kubeconfig-operator
-    newTag: v1.0.2
