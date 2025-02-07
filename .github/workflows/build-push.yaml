@@ -55,7 +55,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64 #,linux/arm64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ env.IMAGE_NAME }}:latest,${{ env.IMAGE_NAME }}:${{ steps.semver.outputs.version_tag }},${{ env.IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
