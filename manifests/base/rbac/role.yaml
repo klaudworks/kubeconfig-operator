@@ -17,10 +17,10 @@ rules:
   verbs:
   - '*'
 - apiGroups:
-  - group.example.com
+  - klaud.works
   resources:
-  - accesstokens
-  - accesstokens/status
+  - kubeconfigs
+  - kubeconfigs/status
   verbs:
   - '*'
 - apiGroups:
