@@ -1,3 +1,5 @@
+![Docker Build and Push](https://github.com/klaudworks/kubeconfig-operator/actions/workflows/build-push.yaml/badge.svg) ![Lint and Test](https://github.com/klaudworks/kubeconfig-operator/actions/workflows/lint-test.yaml/badge.svg)![Last commit](https://badgen.net/github/last-commit/klaudworks/kubeconfig-operator) ![MIT License](https://badgen.net/static/license/MIT/blue) 
+
 # Kubeconfig Operator
 
 This controller implements a `Kubeconfig` custom resource to generate a kubeconfig file with a specified set of permissions.
