@@ -1,3 +1,5 @@
+![Docker Build and Push](https://github.com/klaudworks/kubeconfig-operator/actions/workflows/build-push.yaml/badge.svg) ![Lint and Test](https://github.com/klaudworks/kubeconfig-operator/actions/workflows/lint-test.yaml/badge.svg)![Last commit](https://badgen.net/github/last-commit/klaudworks/kubeconfig-operator) ![MIT License](https://badgen.net/static/license/MIT/blue) 
+
 # Kubeconfig Operator
 
 This controller implements a `Kubeconfig` custom resource to generate a kubeconfig file with a specified set of permissions.
@@ -14,7 +16,9 @@ metadata:
   name: restricted-access
 spec:
   clusterName: local-kind-cluster
-  server: https://127.0.0.1:52856 # specify external endpoint to your kubernetes API.
+  # specify external endpoint to your kubernetes API.
+  # You can copy this from your other kubeconfig.
+  server: https://127.0.0.1:52856   
   clusterPermissions:
     rules:
     - apiGroups:
@@ -56,19 +60,30 @@ kubectl get secret restricted-access-kubeconfig -o jsonpath="{.data.kubeconfig}"
 
 ## Installation
 
-### Option 1: Reference kustomize files on github
+### Living on the edge:
+```bash
+kubectl apply -k "github.com/klaudworks/kubeconfig-operator/manifests/base?ref=v1.0.12"
+```
 
+### Recommendation 1: Reference this repo's manifests 
+
+
+kubeconfig-operator/kustomization.yaml:
 ```yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - github.com/klaudworks/kubeconfig-operator/manifests/base?ref=26fdcdfa71ca82a529f5cbeb13120069a7c23093
+  - github.com/klaudworks/kubeconfig-operator/manifests/base?ref=v1.0.12
+```
+```bash
+kubectl apply -k kubeconfig-operator
 ```
 
-### Option 2: Copy the files and apply them locally
+### Recommendation 2: Download the manifests folder
 
 ```bash
 git clone git@github.com:klaudworks/kubeconfig-operator.git
+cd kubeconfig-operator
 kubectl apply -f manifests/
 ```
 
@@ -81,10 +96,9 @@ kubectl apply -f manifests/
 
 
 1. Clone the repository:
-
-    ```
-    git clone github.com:klaudworks/kubeconfig-operator.git
-    ```
+   ```
+   git clone github.com:klaudworks/kubeconfig-operator.git
+   ```
 1. Ensure you install [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation) or you have another Kubernetes distribution installed.
 1. Install the CRDs 
    ```sh
@@ -95,22 +109,18 @@ kubectl apply -f manifests/
    kubectl create namespace kubeconfig-operator
    ```
 1. Test the controller with the `Kubeconfig` yaml manifest from above.
+1. Run the actual controller locally via:
+   ```sh
+   go run cmd/main.go --kubeconfig ~/.kube/kind.yaml --kubecontext kind-kind  
+   ```
 1. Download the kubeconfig
    ```sh
-   kubectl get accesstoken test -n default -oyaml
+   kubectl get secret restricted-access-kubeconfig -o jsonpath="{.data.kubeconfig}" | base64 --decode
    ```
 
-   You should see the following status condition, indicating that the object was instantiated successfully.
+## Additional information
 
-   ```yaml
-    status:
-      conditions:
-      - lastTransitionTime: "2024-10-24T17:33:35Z"
-        message: All conditions successful.
-        observedGeneration: 1
-        reason: ConditionsSuccessful
-        status: "True"
-        type: Ready
-    ```
-   You'll also see that it provisioned a deploy token as a secret, whose name is under `status.tokenSecretRef`.
+### Achilles SDK
+
+This operator is based on [Achilles SDK](https://github.com/reddit/achilles-sdk) developed by reddit. It allows us to specify the operator's behavior as a finite state machine.
 
