@@ -3,6 +3,7 @@ package kubeconfig_test
 import (
 	"context"
 	"fmt"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -10,6 +11,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -19,8 +21,10 @@ import (
 
 var _ = Describe("KubeconfigReconciler", Ordered, func() {
 	var (
-		ctx        = context.Background()
-		kubeconfig *v1alpha1.Kubeconfig
+		ctx                  = context.Background()
+		kubeconfig           *v1alpha1.Kubeconfig
+		saName               string
+		kubeconfigSecretName string
 	)
 
 	BeforeEach(func() {
@@ -64,39 +68,27 @@ var _ = Describe("KubeconfigReconciler", Ordered, func() {
 						},
 					},
 				},
+				// Optionally, you might set an ExpirationTTL (e.g. "365d") if your controller makes use of it.
+				ExpirationTTL: "365d",
 			},
 		}
+
+		saName = kubeconfig.Name
+		kubeconfigSecretName = kubeconfig.Name
 
 		// Create the Kubeconfig resource
 		Expect(c.Create(ctx, kubeconfig)).To(Succeed())
 	})
 
 	It("should reconcile Kubeconfig objects", func() {
-		// Factor out the token secret name.
-		tokenSecretName := kubeconfig.Name + "-token"
-		kubeconfigSecretName := kubeconfig.Name + "-kubeconfig"
 
 		By("provisioning resources required for the kubeconfig")
 
-		// 1. ServiceAccount Token Secret (created by the builder)
-		Eventually(func(g Gomega) {
-			expectedSecret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      tokenSecretName,
-					Namespace: kubeconfig.Namespace,
-				},
-			}
-			actualSecret := &corev1.Secret{}
-			g.Expect(c.Get(ctx, client.ObjectKeyFromObject(expectedSecret), actualSecret)).To(Succeed())
-			g.Expect(actualSecret.Type).To(Equal(corev1.SecretTypeServiceAccountToken))
-			g.Expect(actualSecret.Annotations).To(HaveKeyWithValue("kubernetes.io/service-account.name", kubeconfig.Name))
-		}).Should(Succeed())
-
-		// 2. ServiceAccount creation
+		// 1. ServiceAccount creation
 		Eventually(func(g Gomega) {
 			expectedSA := &corev1.ServiceAccount{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeconfig.Name,
+					Name:      saName,
 					Namespace: kubeconfig.Namespace,
 				},
 			}
@@ -104,22 +96,7 @@ var _ = Describe("KubeconfigReconciler", Ordered, func() {
 			g.Expect(c.Get(ctx, client.ObjectKeyFromObject(expectedSA), actualSA)).To(Succeed())
 		}).Should(Succeed())
 
-		// SIMULATE TOKEN INJECTION:
-		// In a real environment, the service account token secret would be populated automatically.
-		// For testing, patch the secret (named "foobar") with fake token data.
-		By("simulating token injection on the service account token secret")
-		Eventually(func(g Gomega) {
-			saSecret := &corev1.Secret{}
-			g.Expect(c.Get(ctx, client.ObjectKey{Namespace: kubeconfig.Namespace, Name: tokenSecretName}, saSecret)).To(Succeed())
-			if saSecret.Data == nil {
-				saSecret.Data = map[string][]byte{}
-			}
-			saSecret.Data["token"] = []byte("fake-token")
-			saSecret.Data["ca.crt"] = []byte("fake-ca-crt")
-			g.Expect(c.Update(ctx, saSecret)).To(Succeed())
-		}).Should(Succeed())
-
-		// 3. Role and RoleBinding for "default" namespace permission
+		// 2. Role and RoleBinding for "default" namespace permission
 		Eventually(func(g Gomega) {
 			expectedRole := &rbacv1.Role{
 				ObjectMeta: metav1.ObjectMeta{
@@ -147,7 +124,7 @@ var _ = Describe("KubeconfigReconciler", Ordered, func() {
 				Subjects: []rbacv1.Subject{
 					{
 						Kind:      rbacv1.ServiceAccountKind,
-						Name:      kubeconfig.Name,
+						Name:      saName,
 						Namespace: kubeconfig.Namespace,
 					},
 				},
@@ -163,7 +140,7 @@ var _ = Describe("KubeconfigReconciler", Ordered, func() {
 			g.Expect(actualRoleBinding.Subjects).To(Equal(expectedRoleBinding.Subjects))
 		}).Should(Succeed())
 
-		// 4. Role and RoleBinding for "kube-system" namespace permission
+		// 3. Role and RoleBinding for "kube-system" namespace permission
 		Eventually(func(g Gomega) {
 			expectedRole := &rbacv1.Role{
 				ObjectMeta: metav1.ObjectMeta{
@@ -191,7 +168,7 @@ var _ = Describe("KubeconfigReconciler", Ordered, func() {
 				Subjects: []rbacv1.Subject{
 					{
 						Kind:      rbacv1.ServiceAccountKind,
-						Name:      kubeconfig.Name,
+						Name:      saName,
 						Namespace: kubeconfig.Namespace,
 					},
 				},
@@ -207,7 +184,7 @@ var _ = Describe("KubeconfigReconciler", Ordered, func() {
 			g.Expect(actualRoleBinding.Subjects).To(Equal(expectedRoleBinding.Subjects))
 		}).Should(Succeed())
 
-		// 5. ClusterRole and ClusterRoleBinding for cluster permissions
+		// 4. ClusterRole and ClusterRoleBinding for cluster permissions
 		Eventually(func(g Gomega) {
 			clusterRoleName := fmt.Sprintf("%s-%s", kubeconfig.Name, kubeconfig.Namespace)
 			expectedClusterRole := &rbacv1.ClusterRole{
@@ -234,7 +211,7 @@ var _ = Describe("KubeconfigReconciler", Ordered, func() {
 				Subjects: []rbacv1.Subject{
 					{
 						Kind:      rbacv1.ServiceAccountKind,
-						Name:      kubeconfig.Name,
+						Name:      saName,
 						Namespace: kubeconfig.Namespace,
 					},
 				},
@@ -259,11 +236,10 @@ var _ = Describe("KubeconfigReconciler", Ordered, func() {
 				},
 			}
 			g.Expect(c.Get(ctx, client.ObjectKeyFromObject(actual), actual)).To(Succeed())
-			g.Expect(actual.Status.ServiceAccountRef).To(Equal(ptr.To(kubeconfig.Name)))
+			g.Expect(actual.Status.ServiceAccountRef).To(Equal(ptr.To(saName)))
 		}).Should(Succeed())
 
 		By("provisioning a kubeconfig secret for client usage")
-		// Expect the reconciler to create a separate secret containing the actual kubeconfig data.
 		Eventually(func(g Gomega) {
 			expectedSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -284,7 +260,7 @@ var _ = Describe("KubeconfigReconciler", Ordered, func() {
 				},
 			}
 			g.Expect(c.Get(ctx, client.ObjectKeyFromObject(actual), actual)).To(Succeed())
-			expectedKubeconfigSecretRef := ptr.To(kubeconfig.Name + "-kubeconfig")
+			expectedKubeconfigSecretRef := ptr.To(kubeconfigSecretName)
 			g.Expect(actual.Status.KubeconfigSecretRef).To(Equal(expectedKubeconfigSecretRef))
 		}).Should(Succeed())
 
@@ -346,5 +322,49 @@ var _ = Describe("KubeconfigReconciler", Ordered, func() {
 			g.Expect(errors.IsNotFound(c.Get(ctx, client.ObjectKeyFromObject(expectedDeletedClusterRole), &rbacv1.ClusterRole{}))).To(BeTrue())
 			g.Expect(errors.IsNotFound(c.Get(ctx, client.ObjectKeyFromObject(expectedDeletedClusterRoleBinding), &rbacv1.ClusterRoleBinding{}))).To(BeTrue())
 		}).Should(Succeed())
+	})
+
+	It("should refresh kubeconfig when token is nearing expiration", func() {
+		By("recording the initial token from the kubeconfig secret")
+		var initialToken string
+
+		Eventually(func(g Gomega) {
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      kubeconfigSecretName,
+					Namespace: kubeconfig.Namespace,
+				},
+			}
+			actualSecret := &corev1.Secret{}
+			g.Expect(c.Get(ctx, client.ObjectKeyFromObject(secret), actualSecret)).To(Succeed())
+
+			cfg, err := clientcmd.Load(actualSecret.Data["kubeconfig"])
+			g.Expect(err).NotTo(HaveOccurred())
+			token := cfg.AuthInfos[kubeconfig.Name].Token
+			g.Expect(token).NotTo(BeEmpty())
+			initialToken = token
+		}).Should(Succeed())
+
+		By("forcing the token to be nearly expired by updating status")
+		// We set the token expiration to 10 seconds from now.
+		Eventually(func(g Gomega) {
+			updatedKC := &v1alpha1.Kubeconfig{}
+			g.Expect(c.Get(ctx, client.ObjectKey{Namespace: kubeconfig.Namespace, Name: kubeconfig.Name}, updatedKC)).To(Succeed())
+			nearExpiry := metav1.NewTime(time.Now().Add(10 * time.Second))
+			updatedKC.Status.ServiceAccountTokenExpiration = &nearExpiry
+			g.Expect(c.Status().Update(ctx, updatedKC)).To(Succeed())
+		}).Should(Succeed())
+
+		By("waiting for the token to be refreshed")
+		// The reconciler should now detect that the token is near expiry and refresh it.
+		Eventually(func(g Gomega) {
+			secret := &corev1.Secret{}
+			g.Expect(c.Get(ctx, client.ObjectKey{Namespace: kubeconfig.Namespace, Name: kubeconfig.Name}, secret)).To(Succeed())
+			cfg, err := clientcmd.Load(secret.Data["kubeconfig"])
+			g.Expect(err).NotTo(HaveOccurred())
+			refreshedToken := cfg.AuthInfos[kubeconfig.Name].Token
+			g.Expect(refreshedToken).NotTo(BeEmpty())
+			g.Expect(refreshedToken).NotTo(Equal(initialToken))
+		}, "60s", "2s").Should(Succeed())
 	})
 })

@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/workqueue"
@@ -25,6 +26,8 @@ import (
 	"github.com/klaudworks/kubeconfig-operator/api/klaud.works/v1alpha1"
 	"github.com/klaudworks/kubeconfig-operator/internal/controlplane"
 	"github.com/klaudworks/kubeconfig-operator/internal/serviceaccount"
+	"github.com/klaudworks/kubeconfig-operator/internal/token"
+	"github.com/klaudworks/kubeconfig-operator/internal/util"
 )
 
 // These kubebuilder markers[0] define the access (RBAC) requirements for the
@@ -36,6 +39,7 @@ import (
 
 // +kubebuilder:rbac:groups=klaud.works,resources=kubeconfigs;kubeconfigs/status,verbs=*
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=*
+// +kubebuilder:rbac:groups="",resources=serviceaccounts/token,verbs=create
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=*
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings,verbs=*
 // +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=*
@@ -47,9 +51,11 @@ const (
 type state = types.State[*v1alpha1.Kubeconfig]
 
 type reconciler struct {
-	c      *io.ClientApplicator
-	scheme *runtime.Scheme
-	log    *zap.SugaredLogger
+	c          *io.ClientApplicator
+	scheme     *runtime.Scheme
+	log        *zap.SugaredLogger
+	kubeClient *kubernetes.Clientset
+	caCrtData  []byte
 }
 
 func (r *reconciler) provisionServiceAccount() *state {
@@ -67,10 +73,7 @@ func (r *reconciler) provisionServiceAccount() *state {
 			for _, o := range outputs {
 				var applyOpts []io.ApplyOption
 
-				// NOTE: the achilles-sdk by default adds an owner reference to all objects created by the controller,
-				// but we want to avoid this for ClusterRole and ClusterRoleBinding objects since they are cluster-scoped
-				// and for any object that is not in the same namespace as the AccessToken
-
+				// Avoid owner refs for cluster-scoped or cross-namespace objects.
 				switch o.(type) {
 				case *rbacv1.ClusterRole:
 					applyOpts = append(applyOpts, io.WithoutOwnerRefs())
@@ -86,8 +89,6 @@ func (r *reconciler) provisionServiceAccount() *state {
 			}
 
 			kubeconfig.Status.ServiceAccountRef = ptr.To(builder.ServiceAccount().Name)
-			kubeconfig.Status.ServiceAccountTokenSecretRef = ptr.To(builder.Secret().Name)
-
 			return r.deleteStalePermissions(outputs), types.DoneResult()
 		},
 	}
@@ -163,48 +164,47 @@ func (r *reconciler) provisionKubeconfig() *state {
 			}
 			saName := *kubeconfig.Status.ServiceAccountRef
 
-			if kubeconfig.Status.ServiceAccountTokenSecretRef == nil {
-				return nil, types.ErrorResultf("missing service account token secret reference in status")
-			}
-			tokenSecretName := *kubeconfig.Status.ServiceAccountTokenSecretRef
-
+			// Retrieve the ServiceAccount.
 			sa := &corev1.ServiceAccount{}
 			if err := r.c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: saName}, sa); err != nil {
 				return nil, types.ErrorResultf("failed to get service account %s/%s: %v", namespace, saName, err)
 			}
 
-			tokenSecret := &corev1.Secret{}
-			if err := r.c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: tokenSecretName}, tokenSecret); err != nil {
-				return nil, types.ErrorResultf("failed to get service account token secret %s: %v", *kubeconfig.Status.ServiceAccountRef, err)
+			// Parse ExpirationTTL (expects a value like "365d").
+			expirationSeconds, err := util.ParseExpirationTTL(kubeconfig.Spec.ExpirationTTL)
+			if err != nil {
+				return nil, types.ErrorResultf("failed to parse expirationTTL: %v", err)
 			}
 
-			if tokenSecret.Type != corev1.SecretTypeServiceAccountToken {
-				return nil, types.ErrorResultf("service account token secret %s is not of type ServiceAccountToken", *kubeconfig.Status.ServiceAccountRef)
+			// Use the token package to ensure the token is valid or refreshed.
+			tokenInfo, refreshed, err := token.EnsureToken(ctx, r.kubeClient, namespace, saName, expirationSeconds, kubeconfig.Status.ServiceAccountTokenExpiration)
+			if err != nil {
+				return nil, types.ErrorResultf("%v", err)
+			}
+			if !refreshed {
+				// Existing token is still valid. No need to create a new kubeconfig.
+				return nil, types.DoneResult()
 			}
 
-			tokenData, ok := tokenSecret.Data["token"]
-			if !ok {
-				return nil, types.ErrorResultf("key 'token' not found in secret %s", tokenSecret.Name)
-			}
-			caCrtData, ok := tokenSecret.Data["ca.crt"]
-			if !ok {
-				return nil, types.ErrorResultf("key 'ca.crt' not found in secret %s", tokenSecret.Name)
+			if len(r.caCrtData) == 0 {
+				return nil, types.ErrorResultf("cluster CA certificate data is not available")
 			}
 
 			server := kubeconfig.Spec.Server
 			clusterName := kubeconfig.Spec.ClusterName
 
+			// Build and serialize a new kubeconfig using the requested token.
 			kc := &clientcmdapi.Config{
 				CurrentContext: clusterName,
 				Clusters: map[string]*clientcmdapi.Cluster{
 					clusterName: {
 						Server:                   server,
-						CertificateAuthorityData: caCrtData,
+						CertificateAuthorityData: r.caCrtData,
 					},
 				},
 				AuthInfos: map[string]*clientcmdapi.AuthInfo{
 					saName: {
-						Token: string(tokenData),
+						Token: tokenInfo.Token,
 					},
 				},
 				Contexts: map[string]*clientcmdapi.Context{
@@ -216,19 +216,17 @@ func (r *reconciler) provisionKubeconfig() *state {
 				},
 			}
 
-			// Serialize the kubeconfig to YAML.
 			kubeconfigBytes, err := clientcmd.Write(*kc)
 			if err != nil {
 				return nil, types.ErrorResultf("failed to serialize kubeconfig: %v", err)
 			}
 
-			// Create a new secret dedicated to storing the kubeconfig.
-			secretName := kubeconfig.GetName() + "-kubeconfig"
+			// Create or update the secret containing the kubeconfig.
+			secretName := kubeconfig.GetName()
 			kubeconfigSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      secretName,
-					Namespace: kubeconfig.GetNamespace(),
-					// Optionally set owner references so that the secret is tied to the lifecycle of kubeconfig.
+					Namespace: namespace,
 					OwnerReferences: []metav1.OwnerReference{
 						*metav1.NewControllerRef(kubeconfig, v1alpha1.GroupVersion.WithKind("Kubeconfig")),
 					},
@@ -239,11 +237,12 @@ func (r *reconciler) provisionKubeconfig() *state {
 				Type: corev1.SecretTypeOpaque,
 			}
 
-			// Schedule the new secret to be applied.
 			out.Apply(kubeconfigSecret)
 
-			// Update status with the new secret name.
+			// Update the kubeconfig status with the new token details.
 			kubeconfig.Status.KubeconfigSecretRef = ptr.To(secretName)
+			kubeconfig.Status.ServiceAccountTokenExpiration = ptr.To(tokenInfo.ExpirationTimestamp)
+			kubeconfig.Status.ServiceAccountTokenRefresh = ptr.To(tokenInfo.RefreshTimestamp)
 
 			return nil, types.DoneResult()
 		},
@@ -262,10 +261,18 @@ func SetupController(
 		return err
 	}
 
+	cfg := mgr.GetConfig()
+	kubeClient, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return err
+	}
+
 	r := &reconciler{
-		c:      c,
-		scheme: mgr.GetScheme(),
-		log:    log,
+		c:          c,
+		scheme:     mgr.GetScheme(),
+		log:        log,
+		kubeClient: kubeClient,
+		caCrtData:  cfg.CAData,
 	}
 
 	builder := fsm.NewBuilder(
