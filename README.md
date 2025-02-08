@@ -29,6 +29,7 @@ spec:
   # specify external endpoint to your kubernetes API.
   # You can copy this from your other kubeconfig.
   server: https://127.0.0.1:52856   
+  expirationTTL: 365
   clusterPermissions:
     rules:
     - apiGroups:
