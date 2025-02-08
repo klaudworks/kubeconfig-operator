@@ -62,7 +62,7 @@ kubectl get secret restricted-access-kubeconfig -o jsonpath="{.data.kubeconfig}"
 
 ### Living on the edge:
 ```bash
-kubectl apply -k "github.com/klaudworks/kubeconfig-operator/manifests/base?ref=v1.0.10"
+kubectl apply -k "github.com/klaudworks/kubeconfig-operator/manifests/base?ref=v1.0.12"
 ```
 
 ### Recommendation 1: Reference this repo's manifests 
@@ -73,7 +73,7 @@ kubeconfig-operator/kustomization.yaml:
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - github.com/klaudworks/kubeconfig-operator/manifests/base?ref=v1.0.10
+  - github.com/klaudworks/kubeconfig-operator/manifests/base?ref=v1.0.12
 ```
 ```bash
 kubectl apply -k kubeconfig-operator
@@ -96,10 +96,9 @@ kubectl apply -f manifests/
 
 
 1. Clone the repository:
-
-    ```
-    git clone github.com:klaudworks/kubeconfig-operator.git
-    ```
+   ```
+   git clone github.com:klaudworks/kubeconfig-operator.git
+   ```
 1. Ensure you install [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation) or you have another Kubernetes distribution installed.
 1. Install the CRDs 
    ```sh
@@ -111,9 +110,9 @@ kubectl apply -f manifests/
    ```
 1. Test the controller with the `Kubeconfig` yaml manifest from above.
 1. Run the actual controller locally via:
-  ```sh
-  go run cmd/main.go --kubeconfig ~/.kube/kind.yaml --kubecontext kind-kind  
-  ```
+   ```sh
+   go run cmd/main.go --kubeconfig ~/.kube/kind.yaml --kubecontext kind-kind  
+   ```
 1. Download the kubeconfig
    ```sh
    kubectl get secret restricted-access-kubeconfig -o jsonpath="{.data.kubeconfig}" | base64 --decode

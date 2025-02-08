@@ -11,4 +11,4 @@ resources:
 images:
   - name: ghcr.io/klaudworks/kubeconfig-operator
     newName: ghcr.io/klaudworks/kubeconfig-operator
-    newTag: v1.0.10
+    newTag: v1.0.12
