@@ -60,19 +60,30 @@ kubectl get secret restricted-access-kubeconfig -o jsonpath="{.data.kubeconfig}"
 
 ## Installation
 
-### Option 1: Reference kustomize files on github
+### Living on the edge:
+```bash
+kubectl apply -k "github.com/klaudworks/kubeconfig-operator/manifests/base?ref=v1.0.10"
+```
 
+### Recommendation 1: Reference this repo's manifests 
+
+
+kubeconfig-operator/kustomization.yaml:
 ```yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - github.com/klaudworks/kubeconfig-operator/manifests/base?ref=26fdcdfa71ca82a529f5cbeb13120069a7c23093
+  - github.com/klaudworks/kubeconfig-operator/manifests/base?ref=v1.0.10
+```
+```bash
+kubectl apply -k kubeconfig-operator
 ```
 
-### Option 2: Copy the files and apply them locally
+### Recommendation 2: Download the manifests folder
 
 ```bash
 git clone git@github.com:klaudworks/kubeconfig-operator.git
+cd kubeconfig-operator
 kubectl apply -f manifests/
 ```
 
