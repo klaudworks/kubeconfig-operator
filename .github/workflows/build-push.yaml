@@ -10,6 +10,7 @@ on:
       - 'main'
     paths-ignore:
       - README.md
+      - docs/**
       - manifests/**
       - .vscode/**
       - .github/**
