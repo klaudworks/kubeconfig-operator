@@ -67,6 +67,9 @@ Extract and store the kubeconfig as follows:
 ```bash
 kubectl get secret restricted-access-kubeconfig -o jsonpath="{.data.kubeconfig}" | base64 --decode > restricted-access-kubeconfig.yaml
 ```
+## How the operator work?
+
+![Reconcile loop](docs/images/reconcile-loop.png)
 
 ## Use cases
 
