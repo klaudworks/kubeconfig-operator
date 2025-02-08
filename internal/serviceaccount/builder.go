@@ -43,7 +43,7 @@ func (b *builder) Build() []client.Object {
 func (b *builder) ServiceAccount() *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      b.kubeconfig.GetName(),
+			Name:      b.kubeconfig.GetName() + "-token",
 			Namespace: b.kubeconfig.GetNamespace(),
 		},
 	}
