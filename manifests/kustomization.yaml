@@ -1,0 +1,14 @@
+# handwritten
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - crd/bases/
+  - base/deployment/namespace.yaml
+  - base/rbac/
+  - base/deployment/kubeconfig-operator.yaml
+
+images:
+  - name: ghcr.io/klaudworks/kubeconfig-operator
+    newName: ghcr.io/klaudworks/kubeconfig-operator
+    newTag: v1.0.0
