@@ -67,14 +67,19 @@ Extract and store the kubeconfig as follows:
 ```bash
 kubectl get secret restricted-access-kubeconfig -o jsonpath="{.data.kubeconfig}" | base64 --decode > restricted-access-kubeconfig.yaml
 ```
-## How the operator work?
+## How does the operator work?
 
-![Reconcile loop](docs/images/reconcile-loop.png)
+<div align="center">
+  <img src="docs/images/reconcile-loop.png" alt="Reconcile loop" style="width:50%;">
+</div>
 
-## Use cases
+## FAQ
 
-- limit access for different users e.g. to a dev namespace
-- protect yourself (and others) from accidentally performing destructive actions by using a restricted (e.g. readonly) Kubeconfig for day to day operations.
+1. What do I use this for?
+  - limit access for different users e.g. to a dev namespace
+  - protect yourself (and others) from accidentally performing destructive actions by using a restricted (e.g. readonly) Kubeconfig for day to day operations.
+2. How to revoke a Kubeconfig?
+  - just delete the Kubeconfig resource from the cluster and the service account that grants permissions will be cleaned up.
 
 ## Local Development
 
