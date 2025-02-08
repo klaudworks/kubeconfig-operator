@@ -14,7 +14,7 @@ The following example creates a kubeconfig limited to
 Install the operator:
 
 ```bash
-kubectl apply -k "github.com/klaudworks/kubeconfig-operator/manifests/base?ref=v1.0.12"
+kubectl apply -k "github.com/klaudworks/kubeconfig-operator/manifests/base?ref=v1.0.14"
 ```
 
 Then, apply the following `Kubeconfig`:
