@@ -60,12 +60,16 @@ spec:
       - watch
 ```
 
-After applying the Kubeconfig custom resource, you can find the actual kubeconfig yaml in a secret `restricted-access-kubeconfig`. 
+After applying the Kubeconfig custom resource, you can view it's expiration and refresh time in the overview.
 
-Extract and store the kubeconfig as follows:
+<div align="center">
+  <img src="docs/images/printer-columns.png" alt="Printer Columns" style="width:100%;">
+</div>
+
+Extract and store your kubeconfig from the secret it is stored in:
 
 ```bash
-kubectl get secret restricted-access-kubeconfig -o jsonpath="{.data.kubeconfig}" | base64 --decode > restricted-access-kubeconfig.yaml
+kubectl get secret restricted-access -o jsonpath="{.data.kubeconfig}" | base64 --decode > restricted-access-kubeconfig.yaml
 ```
 ## How does the operator work?
 
@@ -80,6 +84,10 @@ kubectl get secret restricted-access-kubeconfig -o jsonpath="{.data.kubeconfig}"
   - protect yourself (and others) from accidentally performing destructive actions by using a restricted (e.g. readonly) Kubeconfig for day to day operations.
 2. How to revoke a Kubeconfig?
   - just delete the Kubeconfig resource from the cluster and the service account that grants permissions will be cleaned up.
+3. When will the Kubeconfig be refreshed?
+  - the current setting is that the kubeconfig in the secret is refreshed after 80% of it's validity passes. I.e. if the expirationTTL is set as 100 days, the kubeconfig expires after 80 days.
+4. What happens when a Kubeconfig expires?
+  - you will not be able to use it anymore and have to copy the new kubeconfig from the secret.
 
 ## Local Development
 

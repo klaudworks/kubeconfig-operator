@@ -20,6 +20,8 @@ const (
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Namespaced
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Expires",type="string",JSONPath=".status.serviceAccountTokenExpiration",description="Kubeconfig expiration timestamp"
+// +kubebuilder:printcolumn:name="Refresh",type="string",JSONPath=".status.serviceAccountTokenRefresh",description="Kubeconfig refresh timestamp"
 type Kubeconfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -48,8 +50,14 @@ type KubeconfigSpec struct {
 	// ClusterName is the name of the cluster in the created kubeconfig.
 	// This is also used as the context name. You can change this to anything you want.
 	// Optional
-	// +kubebuilder:default=kubernetes
+	// +kubebuilder:default="kubernetes"
 	ClusterName string `json:"clusterName,omitempty"`
+
+	// ExpirationTTL is the time to live for the service account token.
+	// Specified in days e.g. "365d". Default is 365 days.
+	// Optional
+	// +kubebuilder:default="365d"
+	ExpirationTTL string `json:"expirationTTL,omitempty"`
 
 	// NamespacedPermissions defines a list of namespaced scoped permissions. Optional
 	NamespacedPermissions []NamespacedPermissions `json:"namespacedPermissions,omitempty"`
@@ -84,8 +92,11 @@ type KubeconfigStatus struct {
 	// ServiceAccountRef is a reference to the ServiceAccount that will be used to provision the kubeconfig.
 	ServiceAccountRef *string `json:"serviceAccountSecretRef,omitempty"`
 
-	// ServiceAccountTokenSecretRef is a reference to the Secret containing the service account token.
-	ServiceAccountTokenSecretRef *string `json:"serviceAccountTokenSecretRef,omitempty"`
+	// ServiceAccountTokenExpiration specifies when the service account token will expire.
+	ServiceAccountTokenExpiration *metav1.Time `json:"serviceAccountTokenExpiration,omitempty"`
+
+	// ServiceAccountTokenRefresh specifies when the service account token will be refreshed.
+	ServiceAccountTokenRefresh *metav1.Time `json:"serviceAccountTokenRefresh,omitempty"`
 }
 
 func (c *Kubeconfig) GetConditions() []api.Condition {
