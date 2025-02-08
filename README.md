@@ -89,6 +89,8 @@ kubectl get secret restricted-access -o jsonpath="{.data.kubeconfig}" | base64 -
   - the current setting is that the kubeconfig in the secret is refreshed after 80% of it's validity passes. I.e. if the expirationTTL is set as 100 days, the kubeconfig expires after 80 days.
 4. What happens when a Kubeconfig expires?
   - you will not be able to use it anymore and have to copy the new kubeconfig from the secret.
+5. Can I change the token expiry?
+  - no, you have to delete and recreate the Kubeconfig
 
 ## Local Development
 
