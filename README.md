@@ -95,22 +95,18 @@ kubectl apply -f manifests/
    kubectl create namespace kubeconfig-operator
    ```
 1. Test the controller with the `Kubeconfig` yaml manifest from above.
+1. Run the actual controller locally via:
+  ```sh
+  go run cmd/main.go --kubeconfig ~/.kube/kind.yaml --kubecontext kind-kind  
+  ```
 1. Download the kubeconfig
    ```sh
-   kubectl get accesstoken test -n default -oyaml
+   kubectl get secret restricted-access-kubeconfig -o jsonpath="{.data.kubeconfig}" | base64 --decode
    ```
 
-   You should see the following status condition, indicating that the object was instantiated successfully.
+## Additional information
 
-   ```yaml
-    status:
-      conditions:
-      - lastTransitionTime: "2024-10-24T17:33:35Z"
-        message: All conditions successful.
-        observedGeneration: 1
-        reason: ConditionsSuccessful
-        status: "True"
-        type: Ready
-    ```
-   You'll also see that it provisioned a deploy token as a secret, whose name is under `status.tokenSecretRef`.
+### Achilles SDK
+
+This operator is based on [Achilles SDK](https://github.com/reddit/achilles-sdk) developed by reddit. It allows us to specify the operator's behavior as a finite state machine.
 
