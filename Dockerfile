@@ -1,6 +1,6 @@
 # syntax = docker/dockerfile:1
 ARG GO_BASE_VERSION=1.23
-FROM golang:$GO_BASE_VERSION as builder
+FROM golang:$GO_BASE_VERSION AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
@@ -25,8 +25,8 @@ USER 65532:65532
 
 ENTRYPOINT ["/kubeconfig-operator"]
 
-FROM builder as prod-builder
+FROM builder AS prod-builder
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -a -o /kubeconfig-operator cmd/main.go
 
-FROM runner-base as production
+FROM runner-base AS production
 COPY --from=prod-builder /kubeconfig-operator /kubeconfig-operator
