@@ -9,6 +9,16 @@ The following example creates a kubeconfig limited to
 - read access for configmaps in namespace: kube-system
 - read/write access for configmaps in namespace: default
 
+## Quickstart
+
+Install the operator:
+
+```bash
+kubectl apply -k "github.com/klaudworks/kubeconfig-operator/manifests/base?ref=v1.0.12"
+```
+
+Then, apply the following `Kubeconfig`:
+
 ```yaml
 apiVersion: klaud.works/v1alpha1
 kind: Kubeconfig
@@ -56,35 +66,6 @@ Extract and store the kubeconfig as follows:
 
 ```bash
 kubectl get secret restricted-access-kubeconfig -o jsonpath="{.data.kubeconfig}" | base64 --decode > restricted-access-kubeconfig.yaml
-```
-
-## Installation
-
-### Living on the edge:
-```bash
-kubectl apply -k "github.com/klaudworks/kubeconfig-operator/manifests/base?ref=v1.0.12"
-```
-
-### Recommendation 1: Reference this repo's manifests 
-
-
-kubeconfig-operator/kustomization.yaml:
-```yaml
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-  - github.com/klaudworks/kubeconfig-operator/manifests/base?ref=v1.0.12
-```
-```bash
-kubectl apply -k kubeconfig-operator
-```
-
-### Recommendation 2: Download the manifests folder
-
-```bash
-git clone git@github.com:klaudworks/kubeconfig-operator.git
-cd kubeconfig-operator
-kubectl apply -f manifests/
 ```
 
 ## Use cases
