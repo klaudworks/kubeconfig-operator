@@ -31,7 +31,7 @@ generate: controller-gen kustomize
 	# add all rbac resources to kustomize
 	cd manifests/base/rbac && rm -f kustomization.yaml && $(KUSTOMIZE) create --autodetect
 	# generate complete kubeconfig-operator manifest
-	cd manifests/base && $(KUSTOMIZE) build > manager.yaml
+	cd manifests && $(KUSTOMIZE) build > manager.yaml
 
 .PHONY: test
 test: generate lint envtest ## Run tests.

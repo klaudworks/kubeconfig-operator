@@ -19,14 +19,8 @@ func init() {
 func NewScheme() (*runtime.Scheme, error) {
 	s := runtime.NewScheme()
 
-	// add all k8s native schemes
-	if err := kscheme.AddToScheme(s); err != nil {
-		return nil, fmt.Errorf("adding k8s resources to scheme: %w", err)
-	}
-
-	// add CRD schemes
 	if err := AddToSchemes.AddToScheme(s); err != nil {
-		return nil, fmt.Errorf("adding internal resources to scheme: %w", err)
+		return nil, fmt.Errorf("add resources to scheme: %w", err)
 	}
 
 	return s, nil

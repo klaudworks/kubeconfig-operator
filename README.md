@@ -11,10 +11,10 @@ The following example creates a kubeconfig limited to
 
 ## Quickstart
 
-Install the operator:
+Install the newest version operator:
 
 ```bash
-kubectl apply -k "github.com/klaudworks/kubeconfig-operator/manifests/base?ref=v1.0.14"
+kubectl apply -k "github.com/klaudworks/kubeconfig-operator/manifests/base?ref=main"
 ```
 
 Then, apply the following `Kubeconfig`:

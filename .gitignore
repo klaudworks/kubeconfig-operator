@@ -29,4 +29,4 @@ tilt_modules/
 *.kubeconfig
 
 # ignore generated manifest
-manifests/base/manager.yaml
+manifests/manager.yaml
