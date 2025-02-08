@@ -133,8 +133,13 @@ func (in *KubeconfigStatus) DeepCopyInto(out *KubeconfigStatus) {
 		*out = new(string)
 		**out = **in
 	}
-	if in.ServiceAccountSecretRef != nil {
-		in, out := &in.ServiceAccountSecretRef, &out.ServiceAccountSecretRef
+	if in.ServiceAccountRef != nil {
+		in, out := &in.ServiceAccountRef, &out.ServiceAccountRef
+		*out = new(string)
+		**out = **in
+	}
+	if in.ServiceAccountTokenSecretRef != nil {
+		in, out := &in.ServiceAccountTokenSecretRef, &out.ServiceAccountTokenSecretRef
 		*out = new(string)
 		**out = **in
 	}
