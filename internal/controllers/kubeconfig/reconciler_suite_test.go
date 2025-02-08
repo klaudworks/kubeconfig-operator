@@ -35,7 +35,7 @@ var (
 	log     *zap.SugaredLogger
 )
 
-func TestAccessToken(t *testing.T) {
+func TestKubeconfig(t *testing.T) {
 	RegisterFailHandler(Fail)
 	ctrllog.SetLogger(ctrlzap.New(ctrlzap.WriteTo(GinkgoWriter), ctrlzap.UseDevMode(true)))
 	RunSpecs(t, "Kubeconfig Suite")

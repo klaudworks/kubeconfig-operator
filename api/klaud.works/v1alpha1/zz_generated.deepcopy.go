@@ -7,7 +7,7 @@ package v1alpha1
 
 import (
 	"github.com/reddit/achilles-sdk-api/api"
-	v1 "k8s.io/api/rbac/v1"
+	"k8s.io/api/rbac/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 

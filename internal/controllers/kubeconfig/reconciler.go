@@ -34,7 +34,7 @@ import (
 //
 // [0]: https://book.kubebuilder.io/reference/markers/rbac.html
 
-// +kubebuilder:rbac:groups=group.example.com,resources=accesstokens;accesstokens/status,verbs=*
+// +kubebuilder:rbac:groups=klaud.works,resources=kubeconfigs;kubeconfigs/status,verbs=*
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=*
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=*
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings,verbs=*
