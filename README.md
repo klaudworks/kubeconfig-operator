@@ -2,13 +2,16 @@
 
 This controller implements a `Kubeconfig` custom resource to generate a kubeconfig file with a specified set of permissions.
 
-The following example restricts the kubeconfig
+The following example creates a kubeconfig limited to
+- read access for namespaces
+- read access for configmaps in namespace: kube-system
+- read/write access for configmaps in namespace: default
 
 ```yaml
 apiVersion: klaud.works/v1alpha1
 kind: Kubeconfig
 metadata:
-  name: my-kubeconfig
+  name: restricted-access
 spec:
   clusterName: local-kind-cluster
   server: https://127.0.0.1:52856 # specify external endpoint to your kubernetes API.
@@ -41,7 +44,14 @@ spec:
       - get
       - list
       - watch
+```
 
+After applying the Kubeconfig custom resource, you can find the actual kubeconfig yaml in a secret `restricted-access-kubeconfig`. 
+
+Extract and store the kubeconfig as follows:
+
+```bash
+kubectl get secret restricted-access-kubeconfig -o jsonpath="{.data.kubeconfig}" | base64 --decode > restricted-access-kubeconfig.yaml
 ```
 
 ## Installation
