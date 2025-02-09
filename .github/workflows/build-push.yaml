@@ -56,4 +56,10 @@ jobs:
           push: true
           tags: ${{ env.IMAGE_NAME }}:latest,${{ env.IMAGE_NAME }}:${{ steps.semver.outputs.new_tag }},${{ env.IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max
+          cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max       
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body: |
+            **Docker image**: ghcr.io/klaudworks/kubeconfig-operator:${{ steps.semver.outputs.new_tag }}
+            **Full Changelog**: https://github.com/klaudworks/kubeconfig-operator/compare/${{ steps.semver.outputs.old_tag }}...${{ steps.semver.outputs.new_tag }}
