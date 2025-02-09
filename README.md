@@ -29,7 +29,7 @@ spec:
   # specify external endpoint to your kubernetes API.
   # You can copy this from your other kubeconfig.
   server: https://127.0.0.1:52856   
-  expirationTTL: 365
+  expirationTTL: 365d
   clusterPermissions:
     rules:
     - apiGroups:
@@ -61,7 +61,7 @@ spec:
       - watch
 ```
 
-After applying the Kubeconfig custom resource, you can view it's expiration and refresh time in the overview.
+After applying the Kubeconfig custom resource, you can view it's expiration and refresh time.
 
 <div align="center">
   <img src="docs/images/printer-columns.png" alt="Printer Columns" style="width:100%;">
@@ -83,14 +83,16 @@ kubectl get secret restricted-access -o jsonpath="{.data.kubeconfig}" | base64 -
 1. What do I use this for?
   - limit access for different users e.g. to a dev namespace
   - protect yourself (and others) from accidentally performing destructive actions by using a restricted (e.g. readonly) Kubeconfig for day to day operations.
-2. How to revoke a Kubeconfig?
+1. How to revoke a Kubeconfig?
   - just delete the Kubeconfig resource from the cluster and the service account that grants permissions will be cleaned up.
-3. When will the Kubeconfig be refreshed?
+1. When will the Kubeconfig be refreshed?
   - the current setting is that the kubeconfig in the secret is refreshed after 80% of it's validity passes. I.e. if the expirationTTL is set as 100 days, the kubeconfig expires after 80 days.
-4. What happens when a Kubeconfig expires?
+1. What happens when a Kubeconfig expires?
   - you will not be able to use it anymore and have to copy the new kubeconfig from the secret.
-5. Can I change the token expiry?
-  - no, you have to delete and recreate the Kubeconfig
+1. Can I change the permissions?
+  - yes, you can change the permissions for a Kubeconfig at anytime
+1. Can I change expirationTTL?
+  - no, currently you have to delete and recreate the Kubeconfig resource to update the TTL.
 
 ## Local Development
 
