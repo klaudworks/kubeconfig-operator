@@ -63,3 +63,4 @@ jobs:
           body: |
             **Docker image**: ghcr.io/klaudworks/kubeconfig-operator:${{ steps.semver.outputs.new_tag }}
             **Full Changelog**: https://github.com/klaudworks/kubeconfig-operator/compare/${{ steps.semver.outputs.old_tag }}...${{ steps.semver.outputs.new_tag }}
+          tag_name: ${{ steps.semver.outputs.new_tag }}
