@@ -1,5 +1,10 @@
 ![Docker Build and Push](https://github.com/klaudworks/kubeconfig-operator/actions/workflows/build-push.yaml/badge.svg) ![Lint and Test](https://github.com/klaudworks/kubeconfig-operator/actions/workflows/lint-test.yaml/badge.svg)![Last commit](https://badgen.net/github/last-commit/klaudworks/kubeconfig-operator) ![MIT License](https://badgen.net/static/license/MIT/blue) 
 
+
+<div align="center">
+  <img src="docs/images/printer-columns.png" alt="Printer Columns" style="width:100%;">
+</div>
+
 # Kubeconfig Operator
 
 This controller implements a `Kubeconfig` custom resource to generate a kubeconfig file with a specified set of permissions.
@@ -17,9 +22,10 @@ Install the newest version operator:
 kubectl apply -k "github.com/klaudworks/kubeconfig-operator/manifests/base?ref=main"
 ```
 
-Then, apply the following `Kubeconfig`:
+Then, apply the following sample `Kubeconfig` by executing the following command: 
 
 ```yaml
+cat <<EOF | kubectl apply -f -
 apiVersion: klaud.works/v1alpha1
 kind: Kubeconfig
 metadata:
@@ -59,15 +65,16 @@ spec:
       - get
       - list
       - watch
+EOF
 ```
 
-After applying the Kubeconfig custom resource, you can view it's expiration and refresh time.
+After applying the Kubeconfig custom resource, you can view it's issue, expiration and refresh timestamp.
 
-<div align="center">
-  <img src="docs/images/printer-columns.png" alt="Printer Columns" style="width:100%;">
-</div>
+```bash
+kubectl get kubeconfigs -A
+```
 
-Extract and store your kubeconfig from the secret it is stored in:
+Extract and store the actual kubeconfig yaml file from the secret that is created:
 
 ```bash
 kubectl get secret restricted-access -o jsonpath="{.data.kubeconfig}" | base64 --decode > restricted-access-kubeconfig.yaml
