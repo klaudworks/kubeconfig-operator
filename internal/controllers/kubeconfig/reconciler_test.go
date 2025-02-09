@@ -351,7 +351,7 @@ var _ = Describe("KubeconfigReconciler", Ordered, func() {
 			updatedKC := &v1alpha1.Kubeconfig{}
 			g.Expect(c.Get(ctx, client.ObjectKey{Namespace: kubeconfig.Namespace, Name: kubeconfig.Name}, updatedKC)).To(Succeed())
 			nearExpiry := metav1.NewTime(time.Now().Add(10 * time.Second))
-			updatedKC.Status.ServiceAccountTokenExpiration = &nearExpiry
+			updatedKC.Status.ServiceAccountTokenExpiresAt = &nearExpiry
 			g.Expect(c.Status().Update(ctx, updatedKC)).To(Succeed())
 		}).Should(Succeed())
 

@@ -16,8 +16,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -25,6 +23,7 @@ import (
 
 	"github.com/klaudworks/kubeconfig-operator/api/klaud.works/v1alpha1"
 	"github.com/klaudworks/kubeconfig-operator/internal/controlplane"
+	kubeconfigbuilder "github.com/klaudworks/kubeconfig-operator/internal/kubeconfig"
 	"github.com/klaudworks/kubeconfig-operator/internal/serviceaccount"
 	"github.com/klaudworks/kubeconfig-operator/internal/token"
 	"github.com/klaudworks/kubeconfig-operator/internal/util"
@@ -170,79 +169,45 @@ func (r *reconciler) provisionKubeconfig() *state {
 				return nil, types.ErrorResultf("failed to get service account %s/%s: %v", namespace, saName, err)
 			}
 
-			// Parse ExpirationTTL (expects a value like "365d").
+			var existingSecret *corev1.Secret
+			if ref := kubeconfig.Status.KubeconfigSecretRef; ref != nil {
+				secret := &corev1.Secret{}
+				if err := r.c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: *ref}, secret); err != nil {
+					if !errors.IsNotFound(err) {
+						return nil, types.ErrorResultf("failed to verify existing kubeconfig secret: %v", err)
+					}
+				} else {
+					existingSecret = secret
+				}
+			}
+
 			expirationSeconds, err := util.ParseExpirationTTL(kubeconfig.Spec.ExpirationTTL)
+			existingToken := ""
+			if existingSecret != nil {
+				existingToken = string(existingSecret.Data["token"])
+			}
+			tokenInfo, err := token.EnsureToken(ctx, r.kubeClient, existingToken, expirationSeconds, saName, namespace)
 			if err != nil {
 				return nil, types.ErrorResultf("failed to parse expirationTTL: %v", err)
 			}
 
-			// Use the token package to ensure the token is valid or refreshed.
-			tokenInfo, refreshed, err := token.EnsureToken(ctx, r.kubeClient, namespace, saName, expirationSeconds, kubeconfig.Status.ServiceAccountTokenExpiration)
+			kubeconfigSecret, err := kubeconfigbuilder.Build(kubeconfigbuilder.BuildConfig{
+				Kubeconfig:         kubeconfig,
+				Namespace:          namespace,
+				ServiceAccountName: saName,
+				Token:              tokenInfo.Token,
+				CACrtData:          r.caCrtData,
+			})
 			if err != nil {
-				return nil, types.ErrorResultf("%v", err)
-			}
-			if !refreshed {
-				// Existing token is still valid. No need to create a new kubeconfig.
-				return nil, types.DoneResult()
-			}
-
-			if len(r.caCrtData) == 0 {
-				return nil, types.ErrorResultf("cluster CA certificate data is not available")
-			}
-
-			server := kubeconfig.Spec.Server
-			clusterName := kubeconfig.Spec.ClusterName
-
-			// Build and serialize a new kubeconfig using the requested token.
-			kc := &clientcmdapi.Config{
-				CurrentContext: clusterName,
-				Clusters: map[string]*clientcmdapi.Cluster{
-					clusterName: {
-						Server:                   server,
-						CertificateAuthorityData: r.caCrtData,
-					},
-				},
-				AuthInfos: map[string]*clientcmdapi.AuthInfo{
-					saName: {
-						Token: tokenInfo.Token,
-					},
-				},
-				Contexts: map[string]*clientcmdapi.Context{
-					clusterName: {
-						Cluster:   clusterName,
-						AuthInfo:  saName,
-						Namespace: namespace,
-					},
-				},
-			}
-
-			kubeconfigBytes, err := clientcmd.Write(*kc)
-			if err != nil {
-				return nil, types.ErrorResultf("failed to serialize kubeconfig: %v", err)
-			}
-
-			// Create or update the secret containing the kubeconfig.
-			secretName := kubeconfig.GetName()
-			kubeconfigSecret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretName,
-					Namespace: namespace,
-					OwnerReferences: []metav1.OwnerReference{
-						*metav1.NewControllerRef(kubeconfig, v1alpha1.GroupVersion.WithKind("Kubeconfig")),
-					},
-				},
-				Data: map[string][]byte{
-					"kubeconfig": kubeconfigBytes,
-				},
-				Type: corev1.SecretTypeOpaque,
+				return nil, types.ErrorResultf("failed to build kubeconfig secret: %v", err)
 			}
 
 			out.Apply(kubeconfigSecret)
 
-			// Update the kubeconfig status with the new token details.
-			kubeconfig.Status.KubeconfigSecretRef = ptr.To(secretName)
-			kubeconfig.Status.ServiceAccountTokenExpiration = ptr.To(tokenInfo.ExpirationTimestamp)
-			kubeconfig.Status.ServiceAccountTokenRefresh = ptr.To(tokenInfo.RefreshTimestamp)
+			kubeconfig.Status.KubeconfigSecretRef = ptr.To(kubeconfigSecret.GetName())
+			kubeconfig.Status.ServiceAccountTokenIssuedAt = ptr.To(metav1.NewTime(tokenInfo.IssuedAt))
+			kubeconfig.Status.ServiceAccountTokenExpiresAt = ptr.To(metav1.NewTime(tokenInfo.ExpiresAt))
+			kubeconfig.Status.ServiceAccountTokenRefreshesAt = ptr.To(metav1.NewTime(tokenInfo.RefreshTime()))
 
 			return nil, types.DoneResult()
 		},

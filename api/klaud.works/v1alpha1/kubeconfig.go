@@ -20,8 +20,9 @@ const (
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Namespaced
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Expires",type="string",JSONPath=".status.serviceAccountTokenExpiration",description="Kubeconfig expiration timestamp"
-// +kubebuilder:printcolumn:name="Refresh",type="string",JSONPath=".status.serviceAccountTokenRefresh",description="Kubeconfig refresh timestamp"
+// +kubebuilder:printcolumn:name="Issued",type="string",JSONPath=".status.serviceAccountTokenIssuedAt",description="Kubeconfig issued timestamp"
+// +kubebuilder:printcolumn:name="Expires",type="string",JSONPath=".status.serviceAccountTokenExpiresAt",description="Kubeconfig expiration timestamp"
+// +kubebuilder:printcolumn:name="Refreshes",type="string",JSONPath=".status.serviceAccountTokenRefreshesAt",description="Kubeconfig refresh timestamp"
 type Kubeconfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -90,13 +91,16 @@ type KubeconfigStatus struct {
 	KubeconfigSecretRef *string `json:"kubeconfigSecretRef,omitempty"`
 
 	// ServiceAccountRef is a reference to the ServiceAccount that will be used to provision the kubeconfig.
-	ServiceAccountRef *string `json:"serviceAccountSecretRef,omitempty"`
+	ServiceAccountRef *string `json:"serviceAccountRef,omitempty"`
 
-	// ServiceAccountTokenExpiration specifies when the service account token will expire.
-	ServiceAccountTokenExpiration *metav1.Time `json:"serviceAccountTokenExpiration,omitempty"`
+	// ServiceAccountTokenExpiresAt specifies when the service account token will expire.
+	ServiceAccountTokenExpiresAt *metav1.Time `json:"serviceAccountTokenExpiresAt,omitempty"`
 
-	// ServiceAccountTokenRefresh specifies when the service account token will be refreshed.
-	ServiceAccountTokenRefresh *metav1.Time `json:"serviceAccountTokenRefresh,omitempty"`
+	// ServiceAccountTokenRefreshesAt specifies when the service account token will be refreshed.
+	ServiceAccountTokenRefreshesAt *metav1.Time `json:"serviceAccountTokenRefreshesAt,omitempty"`
+
+	// ServiceAccountTokenIssuedAt specifies when the service account token was issued.
+	ServiceAccountTokenIssuedAt *metav1.Time `json:"serviceAccountTokenIssuedAt,omitempty"`
 }
 
 func (c *Kubeconfig) GetConditions() []api.Condition {
