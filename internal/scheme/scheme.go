@@ -13,7 +13,7 @@ var AddToSchemes = runtime.SchemeBuilder{}
 
 func init() {
 	AddToSchemes.Register(kscheme.AddToScheme)  // native kubernetes schemes
-	AddToSchemes.Register(v1alpha1.AddToScheme) // internal schemes
+	AddToSchemes.Register(v1alpha1.AddToScheme) // custom schemes
 }
 
 func NewScheme() (*runtime.Scheme, error) {
