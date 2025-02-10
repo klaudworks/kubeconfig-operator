@@ -2,6 +2,7 @@ package kubeconfig
 
 import (
 	"errors"
+	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,8 +50,11 @@ func Build(config BuildConfig) (*corev1.Secret, error) {
 }
 
 func generateKubeconfigYaml(config BuildConfig) ([]byte, error) {
+	// Build the context name as serviceaccountname@clustername.
+	contextName := fmt.Sprintf("%s@%s", config.ServiceAccountName, config.Kubeconfig.Spec.ClusterName)
+
 	cfg := &clientcmdapi.Config{
-		CurrentContext: config.Kubeconfig.Spec.ClusterName,
+		CurrentContext: contextName,
 		Clusters: map[string]*clientcmdapi.Cluster{
 			config.Kubeconfig.Spec.ClusterName: {
 				Server:                   config.Kubeconfig.Spec.Server,
@@ -63,7 +67,7 @@ func generateKubeconfigYaml(config BuildConfig) ([]byte, error) {
 			},
 		},
 		Contexts: map[string]*clientcmdapi.Context{
-			config.Kubeconfig.Spec.ClusterName: {
+			contextName: {
 				Cluster:   config.Kubeconfig.Spec.ClusterName,
 				AuthInfo:  config.ServiceAccountName,
 				Namespace: config.Namespace,
