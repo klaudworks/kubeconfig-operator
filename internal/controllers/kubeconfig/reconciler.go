@@ -2,8 +2,6 @@ package kubeconfig
 
 import (
 	"context"
-	"fmt"
-	"os"
 
 	"github.com/reddit/achilles-sdk/pkg/fsm"
 	"github.com/reddit/achilles-sdk/pkg/fsm/types"
@@ -234,19 +232,9 @@ func SetupController(
 		return err
 	}
 
-	// Attempt to load the CA certificate from the default path.
-	caCrtData, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
+	caCrtData, err := util.LoadCACert(cfg, log)
 	if err != nil {
-		log.Infof("unable to read CA certificate from /var/run/secrets/kubernetes.io/serviceaccount/ca.crt: %v", err)
-	}
-
-	if len(caCrtData) == 0 {
-		log.Info("CA certificate file is empty, falling back to config CAData")
-		caCrtData = cfg.CAData
-	}
-
-	if len(caCrtData) == 0 {
-		return fmt.Errorf("failed to load CA certificate: no CA certificate data found in file or config")
+		return err
 	}
 
 	r := &reconciler{
