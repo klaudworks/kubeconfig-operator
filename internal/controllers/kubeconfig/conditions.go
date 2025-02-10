@@ -22,5 +22,5 @@ var conditionStalePermissionsRemoved = api.Condition{
 var conditionKubeconfigProvisioned = api.Condition{
 	Type:    v1alpha1.TypeKubeconfigProvisioned,
 	Status:  corev1.ConditionTrue,
-	Message: "Kubeconfig service account has been provisioned.",
+	Message: "Kubeconfig secret has been provisioned.",
 }

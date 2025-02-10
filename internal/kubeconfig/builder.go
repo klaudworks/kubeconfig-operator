@@ -34,7 +34,7 @@ func Build(config BuildConfig) (*corev1.Secret, error) {
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      config.Kubeconfig.GetName(),
+			Name:      config.Kubeconfig.GetName() + "-kubeconfig",
 			Namespace: config.Kubeconfig.GetNamespace(),
 		},
 		Data: map[string][]byte{

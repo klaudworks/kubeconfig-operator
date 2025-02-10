@@ -74,7 +74,7 @@ var _ = Describe("KubeconfigReconciler", Ordered, func() {
 		}
 
 		saName = kubeconfig.Name
-		kubeconfigSecretName = kubeconfig.Name
+		kubeconfigSecretName = kubeconfig.Name + "-kubeconfig"
 
 		// Create the Kubeconfig resource
 		Expect(c.Create(ctx, kubeconfig)).To(Succeed())
@@ -359,7 +359,7 @@ var _ = Describe("KubeconfigReconciler", Ordered, func() {
 		// The reconciler should now detect that the token is near expiry and refresh it.
 		Eventually(func(g Gomega) {
 			secret := &corev1.Secret{}
-			g.Expect(c.Get(ctx, client.ObjectKey{Namespace: kubeconfig.Namespace, Name: kubeconfig.Name}, secret)).To(Succeed())
+			g.Expect(c.Get(ctx, client.ObjectKey{Namespace: kubeconfig.Namespace, Name: kubeconfigSecretName}, secret)).To(Succeed())
 			cfg, err := clientcmd.Load(secret.Data["kubeconfig"])
 			g.Expect(err).NotTo(HaveOccurred())
 			refreshedToken := cfg.AuthInfos[kubeconfig.Name].Token
