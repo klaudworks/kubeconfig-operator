@@ -7,7 +7,7 @@
 
 # Kubeconfig Operator
 
-This controller implements a `Kubeconfig` custom resource to generate a kubeconfig file with a specified set of permissions.
+The kubeconfig operator implements a `Kubeconfig` custom resource that specifies a set of RBAC permissions. Based on those permissions it creates a correspnding kubeconfig file which it stores in a secret. 
 
 The following example creates a kubeconfig limited to
 - read access for namespaces
