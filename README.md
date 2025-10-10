@@ -1,5 +1,6 @@
 ![Docker Build and Push](https://github.com/klaudworks/kubeconfig-operator/actions/workflows/build-push.yaml/badge.svg) ![Lint and Test](https://github.com/klaudworks/kubeconfig-operator/actions/workflows/lint-test.yaml/badge.svg)![Last commit](https://badgen.net/github/last-commit/klaudworks/kubeconfig-operator) ![MIT License](https://badgen.net/static/license/MIT/blue) 
 
+📌 This operator is actively maintained and used in production. If you don't see frequent updates, it means the operator is stable and just works! I am quick to respond to any issues that arise.
 
 <div align="center">
   <img src="docs/images/printer-columns.png" alt="Printer Columns" style="width:100%;">
