@@ -26,7 +26,7 @@ kubectl apply -f https://raw.githubusercontent.com/klaudworks/kubeconfig-operato
 or install a specific version:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/klaudworks/kubeconfig-operator/v1.2.5/manifests/bundles/install.yaml
+kubectl apply -f https://raw.githubusercontent.com/klaudworks/kubeconfig-operator/v1.3.1/manifests/bundles/install.yaml
 ```
 
 Then, apply the following sample `Kubeconfig` by executing the following command: 
