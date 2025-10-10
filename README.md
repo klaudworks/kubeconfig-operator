@@ -19,7 +19,7 @@ The following example creates a kubeconfig limited to
 Install the newest version operator:
 
 ```bash
-kubectl apply -k "github.com/klaudworks/kubeconfig-operator/manifests/base?ref=main"
+kubectl apply -k "github.com/klaudworks/kubeconfig-operator/manifests/?ref=main"
 ```
 
 Then, apply the following sample `Kubeconfig` by executing the following command: 
