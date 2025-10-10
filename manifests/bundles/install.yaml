@@ -381,7 +381,7 @@ spec:
       containers:
       - args:
         - --incluster
-        image: ghcr.io/klaudworks/kubeconfig-operator:v1.1.0
+        image: ghcr.io/klaudworks/kubeconfig-operator:v1.3.1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
