@@ -16,10 +16,16 @@ The following example creates a kubeconfig limited to
 
 ## Quickstart
 
-Install the newest version operator:
+Install the newest operator version or a specific version:
 
 ```bash
-kubectl apply -k "github.com/klaudworks/kubeconfig-operator/manifests/?ref=main"
+kubectl apply -f https://raw.githubusercontent.com/klaudworks/kubeconfig-operator/main/manifests/bundles/install.yaml
+```
+
+or install a specific version:
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/klaudworks/kubeconfig-operator/v1.3.0/manifests/bundles/install.yaml
 ```
 
 Then, apply the following sample `Kubeconfig` by executing the following command: 
