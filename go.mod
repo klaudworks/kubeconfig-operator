@@ -4,7 +4,7 @@ go 1.23.6
 
 require (
 	github.com/fgrosse/zaptest v1.1.0
-	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/onsi/ginkgo/v2 v2.25.1
 	github.com/onsi/gomega v1.38.2
 	github.com/prometheus/client_golang v1.19.0
