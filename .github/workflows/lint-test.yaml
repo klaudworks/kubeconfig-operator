@@ -8,6 +8,8 @@ on:
       - "internal/**"
       - "api/**"
       - "main.go"
+      - "go.mod"
+      - "go.sum"
   pull_request:
     branches: [ "main" ]
     paths:
@@ -15,6 +17,8 @@ on:
       - "internal/**"
       - "api/**"
       - "main.go"
+      - "go.mod"
+      - "go.sum"
 
 jobs:
   lint-and-test:
